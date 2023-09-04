@@ -124,7 +124,7 @@ def EnergyModel(
             ),
         }
     )
-
+    # Pooling per-atom energies of each atom
     layers["total_energy_sum"] = (
         AtomwiseReduce,
         dict(
