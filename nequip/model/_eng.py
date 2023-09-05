@@ -106,12 +106,18 @@ def EnergyModel(
         # -- Embed features --
         "chemical_embedding": AtomwiseLinear,
     }
-
+    ################################################################
+    ################################################################
     ## atomic envrionment descision tree로 설정
     edge_index_TCSM = data["edge_index"]
     atom_types_TCSM= data["atom_types"]
-    edge_index_TCSM = edge_index_TCSM.reshape(-1)
-    criterion_count = torch.bincount(edge_index_TCSM)
+    
+    count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
+                                                                  # for 5nm, the 10 would be good
+    criteron_count = count_TCSM>10
+    print(criterion_count)
+    
+    
     
         
 
