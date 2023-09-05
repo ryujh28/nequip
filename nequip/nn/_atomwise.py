@@ -72,8 +72,8 @@ class AtomwiseLinear_TCSM(GraphModuleMixin, torch.nn.Module):
         super().__init__()
      
         self.N=4
-        print("N")
-        print(self.N)
+        #print("N")
+        #print(self.N)
 
         self.field = field
         out_field = out_field if out_field is not None else field
@@ -110,34 +110,57 @@ class AtomwiseLinear_TCSM(GraphModuleMixin, torch.nn.Module):
         pairs = torch.transpose(edge_index_TCSM, 0, 1)
         pairs = pairs.detach().cpu().numpy()
         for pair in pairs:
-            print(pair)
             if atom_types_TCSM[pair[0]] != atom_types_TCSM[pair[1]]:
                 mixture[pair[0]].add(0)
                 mixture[pair[1]].add(0)
             else:
-                mixture[pair[0]].add(atom_types_TCSM[pair[0]]+1)
-                mixture[pair[1]].add(atom_types_TCSM[pair[1]]+1)
+                mixture[pair[0]].add(atom_types_TCSM[pair[0]].item()+1)
+                mixture[pair[1]].add(atom_types_TCSM[pair[1]].item()+1)
         criterion_mix = torch.zeros_like(criterion_count, dtype=int)
-        for atom in range(len(atom_types_TCSM)):
-            criterion_mix[atom] += min(mixture[atom])
+        #print(criterion_count.shape)
+        #print(criterion_mix.shape)
+        #print(mixture)
         
-        print(criterion_count)
-        print(criterion_mix)
+        for atom in range(len(atom_types_TCSM)):
+            if len(mixture[atom])==0:
+                criterion_mix[atom] = 0
+            else:    
+                criterion_mix[atom] += min(mixture[atom])
+        #print("###"*10)
+        #print("criterion_count")  
+        #print(criterion_count)
+        #print("###"*10)
+        #print("criterion_mix")  
+        #print(criterion_mix)
+        #print(criterion_mix.shape)
         criterion= criterion_count *3 + criterion_mix
-        half_neuron=32
-        criterion_matrix = torch.zeros((len(atom_types_TCSM), half_neuron)).cuda() ############# This part should be carefully chosen >> neuron 64 -> 32
+
+        
+        #####################################################################
+        ############ num_feature should be carefully selected. ##############
+        #####################################################################
+
+        
+        num_feature=32
+        
+        criterion_matrix = torch.zeros((len(atom_types_TCSM), num_feature)).cuda() 
         for ii in range(len(criterion)):
-            for jj in range(half_neuron):
-                window=int(half_neuron/4)
+            for jj in range(num_feature):
+                window=int(num_feature/4)
                 if jj in range(criterion[ii]*window, criterion[ii]*window + window):
                     criterion_matrix[ii, jj] = 1
-        
-        print(criterion_matrix)
+        #print("###"*10)
+        #print("criterion_matrix")        
+        #print(criterion_matrix)
+        #print(criterion_matrix.shape)
             
         
 
         data[self.out_field] = torch.mul(self.linears[0](data[self.field]), criterion_matrix)
-        print(data[self.out_field])
+        #print("###"*10)
+        #print("data")
+        #print(data[self.out_field])
+        #print(data[self.out_field].shape)
         return data
 
 
@@ -153,7 +176,7 @@ class AtomwiseLinear_TCSM(GraphModuleMixin, torch.nn.Module):
         #count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
         #                                                          # for 5nm, the 10 would be good
         #criteron_count = count_TCSM>10
-        #print(criterion_count)
+        ##print(criterion_count)
 
 class AtomwiseReduce(GraphModuleMixin, torch.nn.Module):
     constant: float
