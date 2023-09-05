@@ -120,6 +120,16 @@ class GraphModuleMixin:
 
 
 class SequentialGraphNetwork(GraphModuleMixin, torch.nn.Sequential):
+    """
+    여러개 model을 하나로 짜집기 해주는 model 인 것 같음 (by 승재형)
+
+    Q1. GraphModuleMixin은 무엇인가?
+    A1. 
+
+    
+    Q2.
+    """
+    
     r"""A ``torch.nn.Sequential`` of ``GraphModuleMixin``s.
 
     Args:
@@ -130,7 +140,15 @@ class SequentialGraphNetwork(GraphModuleMixin, torch.nn.Sequential):
         self,
         modules: Union[Sequence[GraphModuleMixin], Dict[str, GraphModuleMixin]],
     ):
+        # Sequence는 순서가 있는 자료형, 대충 list, tuple 같은 애들인듯
+        # 그리고 dict에서, str은 key, GraphModuleMixin은 value가 되는 dict를 의미하는듯
+        # 여기서 그럼 Key가 뭐야? 
+        # 아무튼 Union이니까 합집합을 구하게 됨
+        # initialization 할 때 .from_parameter같은걸 사용하면 Union은 알아서 만들어 주는듯
+
         if isinstance(modules, dict):
+            # 만약 합집합이 dict라면?
+            # 왜 dict라고 생각하지?
             module_list = list(modules.values())
         else:
             module_list = list(modules)
@@ -158,6 +176,10 @@ class SequentialGraphNetwork(GraphModuleMixin, torch.nn.Sequential):
         layers: Dict[str, Union[Callable, Tuple[Callable, Dict[str, Any]]]],
         irreps_in: Optional[dict] = None,
     ):
+        # parameter로 부터 가져오자!
+        # cls: class
+        # shared_params는 config를 받는 것 같은데 여기선 mapping이라고 한다.
+        # layers는 string을 key로 하는 dictionary
         r"""Construct a ``SequentialGraphModule`` of modules built from a shared set of parameters.
 
         For some layer, a parameter with name ``param`` will be taken, in order of priority, from:
