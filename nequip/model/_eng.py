@@ -17,7 +17,7 @@ from nequip.nn.embedding import (
 )
 
 from . import builder_utils
-
+import torch
 
 def SimpleIrrepsConfig(config, prefix: Optional[str] = None):
     """Builder that pre-processes options to allow "simple" configuration of irreps."""
@@ -106,6 +106,14 @@ def EnergyModel(
         # -- Embed features --
         "chemical_embedding": AtomwiseLinear,
     }
+
+    ## atomic envrionment descision tree로 설정
+    edge_index_TCSM = data["edge_index"]
+    atom_types_TCSM= data["atom_types"]
+    edge_index_TCSM = edge_index_TCSM.reshape(-1)
+    criterion_count = torch.bincount(edge_index_TCSM)
+    
+        
 
     ## chemical embedding: input Natoms x onehot (2개면 [1, 0] 아니면 [0, 1] 이런식)
     ## output : Natoms x feature dimension
