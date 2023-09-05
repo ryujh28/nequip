@@ -7,6 +7,7 @@ from nequip.data import AtomicDataDict, AtomicDataset
 from nequip.nn import (
     SequentialGraphNetwork,
     AtomwiseLinear,
+    AtomwiseLinear_TCSM,
     AtomwiseReduce,
     ConvNetLayer,
 )
