@@ -134,6 +134,33 @@ def EnergyModel(
         ),
     )
 
+
+    
+    """
+    def from_parameters(
+        cls,
+        shared_params: Mapping,
+        layers: Dict[str, Union[Callable, Tuple[Callable, Dict[str, Any]]]],
+        irreps_in: Optional[dict] = None,
+    ):
+    여기서 
+    layers = {
+        # -- Encode --
+        "one_hot": OneHotAtomEncoding,
+        "spharm_edges": SphericalHarmonicEdgeAttrs,
+        "radial_basis": RadialBasisEdgeEncoding,
+        # -- Embed features --
+        "chemical_embedding": AtomwiseLinear,
+        "layer{layer_i}_convnet" = ConvNetLayer
+        "conv_to_output_hidden": AtomwiseLinear,
+        "output_hidden_to_scalar": (
+                AtomwiseLinear,
+                dict(irreps_out="1x0e", out_field=AtomicDataDict.PER_ATOM_ENERGY_KEY),
+            )
+        "total_energy_sum" : AtomwiseReduce
+    }
+    """
+    
     return SequentialGraphNetwork.from_parameters(
         shared_params=config,
         layers=layers,
