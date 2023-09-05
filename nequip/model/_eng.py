@@ -124,14 +124,16 @@ def EnergyModel(
             "conv_to_output_hidden": AtomwiseLinear,
             ## conv_to_output_hidden을 보면,
             ## input 은 n atoms x 272 << 272가 뭔진 모르겠음... layer갯수, l_max 같은 거랑 관련 있을 것 같음
+            ## 16x0e+16x1e+16x2e+16x1o+16x2o << 이렇게 하면 16 * (1+3+9+1+3) 272임
             ## output은 n atoms x 8 << 왜 또 8인지 모름.)
+            ## 
             
             "output_hidden_to_scalar": (
                 AtomwiseLinear,
                 dict(irreps_out="1x0e", out_field=AtomicDataDict.PER_ATOM_ENERGY_KEY),
             ),
             ## n atomx x 8을 받아서 n atoms를 내놓음
-            ## 8
+            ## 8x0e -> 1x0e
             
         }
     )
