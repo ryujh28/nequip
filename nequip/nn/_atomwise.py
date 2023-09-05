@@ -57,21 +57,24 @@ class AtomwiseLinear(GraphModuleMixin, torch.nn.Module):
         return data
 
 
-class AtomwiseLinear_Nway(GraphModuleMixin, torch.nn.Module):
+class AtomwiseLinear_TCSM(GraphModuleMixin, torch.nn.Module):
+    ## for conv_to_hidden
+
+
+
     def __init__(
         self,
         field: str = AtomicDataDict.NODE_FEATURES_KEY,
         out_field: Optional[str] = None,
         irreps_in=None,
         irreps_out=None,
-        N=None
     ):
         super().__init__()
+     
+        self.N=4
+        print("N")
+        print(self.N)
 
-        if self.N==None:
-            self.N=1
-
-        
         self.field = field
         out_field = out_field if out_field is not None else field
         self.out_field = out_field
@@ -83,21 +86,74 @@ class AtomwiseLinear_Nway(GraphModuleMixin, torch.nn.Module):
             required_irreps_in=[field],
             irreps_out={out_field: irreps_out},
         )
-        linears = []
-        for ii in range(self.N):
-            linears.append(Linear(
-                                irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]))
-        self.linears=linears
 
+        self.linears = []
+        for ii in range(self.N):
+            self.linears.append(Linear(
+                    irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]
+        ).cuda())
+        
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
-        data[self.out_field]  = self.linear(data[self.field]) * 
-        temp = [i[data[self.field] for i in self.linears]
-        temp dot ouronehot
+        ################################################################
+        ################################################################
+        ## atomic envrionment descision tree로 설정
+        edge_index_TCSM = data["edge_index"]
+        atom_types_TCSM= data["atom_types"]
+    
+        count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
+                                                                  # for 5nm, the 10 would be good
+        criterion_count = count_TCSM>10
+        ## ratio 구분
+        mixture = dict() # 0: pure N, 1: pure Si, 2: mixture
+        for atom in range(len(atom_types_TCSM)):
+            mixture[atom] = set()
+        pairs = torch.transpose(edge_index_TCSM, 0, 1)
+        pairs = pairs.detach().cpu().numpy()
+        for pair in pairs:
+            print(pair)
+            if atom_types_TCSM[pair[0]] != atom_types_TCSM[pair[1]]:
+                mixture[pair[0]].add(0)
+                mixture[pair[1]].add(0)
+            else:
+                mixture[pair[0]].add(atom_types_TCSM[pair[0]]+1)
+                mixture[pair[1]].add(atom_types_TCSM[pair[1]]+1)
+        criterion_mix = torch.zeros_like(criterion_count, dtype=int)
+        for atom in range(len(atom_types_TCSM)):
+            criterion_mix[atom] += min(mixture[atom])
+        
+        print(criterion_count)
+        print(criterion_mix)
+        criterion= criterion_count *3 + criterion_mix
+        half_neuron=32
+        criterion_matrix = torch.zeros((len(atom_types_TCSM), half_neuron)).cuda() ############# This part should be carefully chosen >> neuron 64 -> 32
+        for ii in range(len(criterion)):
+            for jj in range(half_neuron):
+                window=int(half_neuron/4)
+                if jj in range(criterion[ii]*window, criterion[ii]*window + window):
+                    criterion_matrix[ii, jj] = 1
+        
+        print(criterion_matrix)
+            
+        
+
+        data[self.out_field] = torch.mul(self.linears[0](data[self.field]), criterion_matrix)
+        print(data[self.out_field])
         return data
 
 
 
 
+
+        ################################################################
+        ################################################################
+        ## atomic envrionment descision tree로 설정
+        #edge_index_TCSM = data["edge_index"]
+        #atom_types_TCSM= data["atom_types"]
+    
+        #count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
+        #                                                          # for 5nm, the 10 would be good
+        #criteron_count = count_TCSM>10
+        #print(criterion_count)
 
 class AtomwiseReduce(GraphModuleMixin, torch.nn.Module):
     constant: float
