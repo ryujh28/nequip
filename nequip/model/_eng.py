@@ -107,6 +107,10 @@ def EnergyModel(
         "chemical_embedding": AtomwiseLinear,
     }
 
+    ## chemical embedding: input Natoms x onehot (2개면 [1, 0] 아니면 [0, 1] 이런식)
+    ## output : Natoms x feature dimension
+    ## 2x0e -> 16x0e
+
     # add convnet layers
     # insertion preserves order
     for layer_i in range(num_layers):
@@ -118,10 +122,17 @@ def EnergyModel(
             # TODO: the next linear throws out all L > 0, don't create them in the last layer of convnet
             # -- output block --
             "conv_to_output_hidden": AtomwiseLinear,
+            ## conv_to_output_hidden을 보면,
+            ## input 은 n atoms x 272 << 272가 뭔진 모르겠음... layer갯수, l_max 같은 거랑 관련 있을 것 같음
+            ## output은 n atoms x 8 << 왜 또 8인지 모름.)
+            
             "output_hidden_to_scalar": (
                 AtomwiseLinear,
                 dict(irreps_out="1x0e", out_field=AtomicDataDict.PER_ATOM_ENERGY_KEY),
             ),
+            ## n atomx x 8을 받아서 n atoms를 내놓음
+            ## 8
+            
         }
     )
     # Pooling per-atom energies of each atom
