@@ -3,6 +3,7 @@ from ._atomwise import (  # noqa: F401
     AtomwiseOperation,
     AtomwiseReduce,
     AtomwiseLinear,
+    AtomwiseLinear_TCSM,
     PerSpeciesScaleShift,
 )  # noqa: F401
 from ._interaction_block import InteractionBlock  # noqa: F401
