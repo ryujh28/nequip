@@ -246,7 +246,7 @@ class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
             for ii in range(len(criterion)):
                 one_hot_criterion_matrix[ii, criterion[ii]] = 1
                 
-            data["one_hot_criterion_matrix"]=criterion_matrix
+            data["one_hot_criterion_matrix"]=one_hot_criterion_matrix
 
 
         
