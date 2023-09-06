@@ -120,7 +120,7 @@ class AtomwiseLinear_TCSM(GraphModuleMixin, torch.nn.Module):
         #print(criterion_count.shape)
         #print(criterion_mix.shape)
         #print(mixture)
-        
+        window=num_feature//6
         for atom in range(len(atom_types_TCSM)):
             if len(mixture[atom])==0:
                 criterion_mix[atom] = 0
