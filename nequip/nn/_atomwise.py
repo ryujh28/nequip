@@ -141,8 +141,9 @@ class AtomwiseLinear_TCSM(GraphModuleMixin, torch.nn.Module):
         #####################################################################
 
         
-        num_feature=32
-        
+        num_feature=30
+        window=num_feature//6
+        criterion_matrix = torch.zeros((len(atom_types_TCSM), num_feature)).cuda()
         for ii in range(len(criterion)):
             start_idx = criterion[ii] * window
             end_idx = start_idx + window
