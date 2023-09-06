@@ -174,7 +174,7 @@ class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
         irreps_out=None,
     ):
         super().__init__()
-        self.N = None
+        self.N = 6
         self.field = field
         out_field = out_field if out_field is not None else field
         self.out_field = out_field
@@ -188,7 +188,7 @@ class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
         )
 
         ####I want to make N linear layers, that will be used for N different atom types.
-        self.linears = [Linear(irreps_in=self.irreps_in[filed], irreps_out = self.irreps_out[out_field]) for i in range(self.N)]
+        self.linears = [Linear(irreps_in=self.irreps_in[field], irreps_out = self.irreps_out[out_field]) for i in range(self.N)]
 
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
         ####In the forward, I now want to output data with N different linear layers to go to for N different atom types.
