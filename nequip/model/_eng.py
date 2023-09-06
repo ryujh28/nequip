@@ -128,7 +128,7 @@ def EnergyModel(
         {
             # TODO: the next linear throws out all L > 0, don't create them in the last layer of convnet
             # -- output block --
-            "conv_to_output_hidden": AtomwiseLinear_TCSM,
+            "conv_to_output_hidden": AtomwiseLinear_Nlinears,
             ## conv_to_output_hidden을 보면,
             ## input 은 n atoms x 272 << 272가 뭔진 모르겠음... layer갯수, l_max 같은 거랑 관련 있을 것 같음
             ## 16x0e+16x1e+16x2e+16x1o+16x2o << 이렇게 하면 16 * (1+3+9+1+3) 272임
