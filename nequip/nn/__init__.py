@@ -4,6 +4,7 @@ from ._atomwise import (  # noqa: F401
     AtomwiseReduce,
     AtomwiseLinear,
     AtomwiseLinear_TCSM,
+    AtomwiseLinear_Nlinears,
     PerSpeciesScaleShift,
 )  # noqa: F401
 from ._interaction_block import InteractionBlock  # noqa: F401
