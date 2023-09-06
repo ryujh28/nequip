@@ -165,7 +165,94 @@ class AtomwiseLinear_TCSM(GraphModuleMixin, torch.nn.Module):
         #print(data[self.out_field].shape)
         return data
 
+class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
+    def __init__(
+        self,
+        field: str = AtomicDataDict.NODE_FEATURES_KEY,
+        out_field: Optional[str] = None,
+        irreps_in=None,
+        irreps_out=None,
+    ):
+        super().__init__()
+        self.N = None
+        self.field = field
+        out_field = out_field if out_field is not None else field
+        self.out_field = out_field
+        if irreps_out is None:
+            irreps_out = irreps_in[field]
 
+        self._init_irreps(
+            irreps_in=irreps_in,
+            required_irreps_in=[field],
+            irreps_out={out_field: irreps_out},
+        )
+
+        ####I want to make N linear layers, that will be used for N different atom types.
+        self.linears = [Linear(irreps_in=self.irreps_in[filed], irreps_out = self.irreps_out[out_field]) for i in range(self.N)]
+
+    def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
+        ####In the forward, I now want to output data with N different linear layers to go to for N different atom types.
+        #so, insead of this: data[self.out_field] = self.linear(data[self.field])
+        #I want to do this:
+
+        if not "criterion_matrix" in data.keys():
+            ################################################################
+            ################################################################
+            ## atomic envrionment descision tree로 설정
+            edge_index_TCSM = data["edge_index"]
+            atom_types_TCSM= data["atom_types"]
+        
+            count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
+                                                                      # for 5nm, the 10 would be good
+            criterion_count = count_TCSM>10 
+            ## ratio 구분
+            mixture = dict() # 0: pure N, 1: pure Si, 2: mixture
+            for atom in range(len(atom_types_TCSM)):
+                mixture[atom] = set()
+            pairs = torch.transpose(edge_index_TCSM, 0, 1)
+            pairs = pairs.detach().cpu().numpy()
+            for pair in pairs:
+                if atom_types_TCSM[pair[0]] != atom_types_TCSM[pair[1]]:
+                    mixture[pair[0]].add(0)
+                    mixture[pair[1]].add(0)
+                else:
+                    mixture[pair[0]].add(atom_types_TCSM[pair[0]].item()+1)
+                    mixture[pair[1]].add(atom_types_TCSM[pair[1]].item()+1)
+            criterion_mix = torch.zeros_like(criterion_count, dtype=int)
+            #print(criterion_count.shape)
+            #print(criterion_mix.shape)
+            #print(mixture)
+            window=num_feature//6
+            for atom in range(len(atom_types_TCSM)):
+                if len(mixture[atom])==0:
+                    criterion_mix[atom] = 0
+                else:    
+                    criterion_mix[atom] += min(mixture[atom])
+            #print("###"*10)
+            #print("criterion_count")  
+            #print(criterion_count)
+            #print("###"*10)
+            #print("criterion_mix")  
+            #print(criterion_mix)
+            #print(criterion_mix.shape)
+            criterion= criterion_count *3 + criterion_mix
+    
+            
+            #####################################################################
+            ############ num_feature should be carefully selected. ##############
+            #####################################################################
+    
+            
+            one_hot_criterion_matrix = torch.zeros((len(atom_types_TCSM), 6)).cuda()
+            for ii in range(len(criterion)):
+                one_hot_criterion_matrix[ii, criterion[ii]] = 1
+                
+            data["one_hot_criterion_matrix"]=criterion_matrix
+
+
+        
+        data[self.out_field] = torch.mul([self.linears[i](data[self.field]) for i in range(self.N)], data['one_hot_criterion_matrix'])
+        return data
 
 
 
