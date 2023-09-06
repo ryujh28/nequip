@@ -143,12 +143,10 @@ class AtomwiseLinear_TCSM(GraphModuleMixin, torch.nn.Module):
         
         num_feature=32
         
-        criterion_matrix = torch.zeros((len(atom_types_TCSM), num_feature)).cuda() 
         for ii in range(len(criterion)):
-            for jj in range(num_feature):
-                window=int(num_feature/6)
-                if jj in range(criterion[ii]*window, criterion[ii]*window + window):
-                    criterion_matrix[ii, jj] = 1
+            start_idx = criterion[ii] * window
+            end_idx = start_idx + window
+            criterion_matrix[ii, start_idx:end_idx] = 1
         #print("###"*10)
         #print("criterion_matrix")        
         #print(criterion_matrix)
