@@ -8,6 +8,7 @@ from nequip.nn import (
     SequentialGraphNetwork,
     AtomwiseLinear,
     AtomwiseLinear_TCSM,
+    AtomwiseLinear_Nlinears,
     AtomwiseReduce,
     ConvNetLayer,
 )
