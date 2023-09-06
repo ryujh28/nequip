@@ -95,7 +95,7 @@ class AtomwiseLinear_TCSM(GraphModuleMixin, torch.nn.Module):
         
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
 
-        if not "criterion_matrix" in data:
+        if not "criterion_matrix" in data.keys():
             ################################################################
             ################################################################
             ## atomic envrionment descision tree로 설정
