@@ -189,7 +189,7 @@ class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
 
         ####I want to make N linear layers, that will be used for N different atom types.
         self.linears = [Linear(irreps_in=self.irreps_in[field], irreps_out = self.irreps_out[out_field]) for i in range(self.N)]
-
+        self.linears = torch.as_tensor(self.linears).cuda()
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
         ####In the forward, I now want to output data with N different linear layers to go to for N different atom types.
         #so, insead of this: data[self.out_field] = self.linear(data[self.field])
