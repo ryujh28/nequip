@@ -73,6 +73,7 @@ class Data(object):
         pos=None,
         normal=None,
         face=None,
+        one_hot_criterion_matrix=None,
         **kwargs,
     ):
         self.x = x
@@ -82,6 +83,7 @@ class Data(object):
         self.pos = pos
         self.normal = normal
         self.face = face
+        self.one_hot_criterion_matrix = one_hot_criterion_matrix
         for key, item in kwargs.items():
             if key == "num_nodes":
                 self.__num_nodes__ = item
