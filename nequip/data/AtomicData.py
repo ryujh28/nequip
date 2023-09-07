@@ -267,8 +267,8 @@ class AtomicData(Data):
 
     ###################################################################
     ###################################################################
-        edge_index_TCSM = edge_index
-        atom_types_TCSM= atom_type
+        edge_index_TCSM = self.edge_index
+        atom_types_TCSM= self.atom_type
     
         count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
                                                                     # for 5nm, the 10 would be good
