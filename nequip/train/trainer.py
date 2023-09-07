@@ -258,23 +258,36 @@ class Trainer:
         verbose="INFO",
         **kwargs,
     ):
+
+        # flag showing if the instance is initialized of not
         self._initialized = False
+        
+        # set accumulative wall time to 0
         self.cumulative_wall = 0
+
+        # logging it
         logging.debug("* Initialize Trainer")
 
         # store all init arguments
+        # model is the model to be used in the training
         self.model = model
 
+        # an empty dictionary, will be used ## TODO
         _local_kwargs = {}
+
+        # self.init_keys에서 key들을 돌면서 각 key에 대한 인스턴스 변수를 설정함
         for key in self.init_keys:
             setattr(self, key, locals()[key])
             _local_kwargs[key] = locals()[key]
-
+            
+        # EMA를 None으로 초기화함
         self.ema = None
 
+        # output 객체를 관리함
         output = Output.get_output(dict(**_local_kwargs, **kwargs))
         self.output = output
 
+        # logfile 을 관리함. 
         self.logfile = output.open_logfile("log", propagate=True)
         self.epoch_log = output.open_logfile("metrics_epoch.csv", propagate=False)
         self.init_epoch_log = output.open_logfile(
@@ -295,14 +308,16 @@ class Trainer:
         self.trainer_save_path = output.generate_file("trainer.pth")
         self.config_path = self.output.generate_file("config.yaml")
 
+        # seed가 제공되면 설정함
         if seed is not None:
             torch.manual_seed(seed)
             np.random.seed(seed)
 
+        # 데이터셋 생성에 사용되는 난수 발생기를 설정 (generator 는 torch의 난수 발생기)
         self.dataset_rng = torch.Generator()
         if dataset_seed is not None:
             self.dataset_rng.manual_seed(dataset_seed)
-
+        
         self.logger.info(f"Torch device: {self.device}")
         self.torch_device = torch.device(self.device)
 
@@ -753,11 +768,19 @@ class Trainer:
     def train(self):
 
         """Training"""
+
+        # 데이터 로더가 (dl_train) 설정되지 않은 경우에, RuntimeError로 예외 발생
+        # 데이터로더는 훈련 데이터를 제공하는 역할
         if getattr(self, "dl_train", None) is None:
             raise RuntimeError("You must call `set_dataset()` before calling `train()`")
+            
+        # 트레이너 객체가 초기화 되지 않았을 경우 init 메소드를 불러서 초기화를 수행함
+        # 다 날려버린다는게 아님~
         if not self._initialized:
             self.init()
-
+            
+        # 초기화 콜백 함수들을 연달아서 실행함. 
+        # 초기화 단계에서 추가적인 작업들을 할 수 있음
         for callback in self._init_callbacks:
             callback(self)
 
