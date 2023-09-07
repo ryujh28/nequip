@@ -26,6 +26,8 @@ ATOMIC_NUMBERS_KEY: Final[str] = "atomic_numbers"
 # [n_atom, 1] long tensor
 ATOM_TYPE_KEY: Final[str] = "atom_types"
 
+ATOMIC_ENVIRONMENT_KEY: Final[str]= "one_hot_criterion_matrix"
+
 BASIC_STRUCTURE_KEYS: Final[List[str]] = [
     POSITIONS_KEY,
     EDGE_INDEX_KEY,
@@ -34,7 +36,7 @@ BASIC_STRUCTURE_KEYS: Final[List[str]] = [
     PBC_KEY,
     ATOM_TYPE_KEY,
     ATOMIC_NUMBERS_KEY,
-    # ATOMIC_ENVIRONMENT_KEY,
+    ATOMIC_ENVIRONMENT_KEY,
 ]
 
 # A [n_edge, 3] tensor of displacement vectors associated to edges
@@ -56,6 +58,7 @@ FORCE_KEY: Final[str] = "forces"
 PARTIAL_FORCE_KEY: Final[str] = "partial_forces"
 STRESS_KEY: Final[str] = "stress"
 VIRIAL_KEY: Final[str] = "virial"
+
 
 ALL_ENERGY_KEYS: Final[List[str]] = [
     PER_ATOM_ENERGY_KEY,
