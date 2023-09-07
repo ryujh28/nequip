@@ -253,24 +253,33 @@ class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
             print('tmp', tmp.shape)
             # tmp = tmp.repeat(32, 1, 1).transpose(0,2)
             data["one_hot_criterion_matrix"]=tmp
-            
+
+        if not "now_epochs" in data.keys():
+            data["now_epochs"]=0
+        data["now_epochs"] +=1
+
         num_atoms, num_features = data[self.field].shape
 
         outfeature=32
-        out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
-        print('out shape', out.shape)
-        # Apply linear transformations for each atom type
-        for i in range(self.N):
-            out[i] = self.linears[i](data[self.field])
-        # out = torch.stack([linear(data[self.field]) for linear in self.linears].cuda(), dim=0)
-        
-        # Multiply by the criterion matrix to selectively apply results
-        print(data['one_hot_criterion_matrix'].shape)
-        print('mul', torch.mul(out,data["one_hot_criterion_matrix"]), torch.mul(out,data["one_hot_criterion_matrix"]).shape)
-        data[self.out_field] = torch.sum(torch.mul(out,data["one_hot_criterion_matrix"]), dim=0).cuda()
-        # data[self.out_field] = torch.sum(out,data["one_hot_criterion_matrix"]), dim=0).cuda()
-        print(data[self.out_field], data[self.out_field].shape)
-        return data
+
+        threshold=25
+        if data["now_epochs"] > threshold:
+
+            out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
+            
+            for i in range(self.N):
+                out[i] = self.linears[i](data[self.field])
+            # out = torch.stack([linear(data[self.field]) for linear in self.linears].cuda(), dim=0)
+            
+            data[self.out_field] = torch.sum(torch.mul(out,data["one_hot_criterion_matrix"]), dim=0).cuda()
+            return data
+        else:
+            out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
+            
+            for i in range(self.N):
+                out[i] = self.linears[i](data[self.field])
+                
+            data[self.out_field] = torch.avg(out, dim=0)
 
 
 
