@@ -154,6 +154,9 @@ def EnergyModel(
         ),
     )
 
+    print(layers, type(layers), type(layers['output_hidden_to_scalar']))
+    ###To-Do
+    ###load state dict from saved parameters.
 
     
     """
