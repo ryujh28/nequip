@@ -330,7 +330,7 @@ class AtomicData(Data):
 
         ###################################################################
         ###################################################################
-                    edge_index_TCSM = edge_index
+            edge_index_TCSM = edge_index
             atom_types_TCSM= data[_keys.ATOM_TYPE_KEY]
         
             count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
