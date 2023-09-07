@@ -166,17 +166,17 @@ class AtomwiseLinear_TCSM(GraphModuleMixin, torch.nn.Module):
         return data
 
 
-class AtomwiseLinear_Nlinears(torch.nn.Module):
+class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
     def __init__(
         self,
         field: str = AtomicDataDict.NODE_FEATURES_KEY,
         out_field: Optional[str] = None,
         irreps_in=None,
         irreps_out=None,
-        num_atom_types: int = 3,  # Initialize with the number of atom types
+        # num_atom_types: int = 3,  # Initialize with the number of atom types
     ):
         super().__init__()
-        self.N = num_atom_types  # Initialize self.N with the number of atom types
+        self.N = 3  # Initialize self.N with the number of atom types
         self.field = field
         out_field = out_field if out_field is not None else field
         self.out_field = out_field
@@ -191,14 +191,14 @@ class AtomwiseLinear_Nlinears(torch.nn.Module):
 
         # Create a list of linear layers for each atom type
         self.linears = [
-            Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field])
+            Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
             for _ in range(self.N)
         ]
 
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
         # Apply linear transformations for each atom type
         # Combine the results in a single tensor
-         if not "criterion_matrix" in data.keys():
+        if not "criterion_matrix" in data.keys():
             ################################################################
             ################################################################
             ## atomic envrionment descision tree로 설정
@@ -248,13 +248,28 @@ class AtomwiseLinear_Nlinears(torch.nn.Module):
             one_hot_criterion_matrix = torch.zeros((len(atom_types_TCSM), self.N)).cuda()
             for ii in range(len(criterion)):
                 one_hot_criterion_matrix[ii, criterion[ii]] = 1
-                
-            data["one_hot_criterion_matrix"]=one_hot_criterion_matrix
-        
-        out = torch.stack([linear(data[self.field]) for linear in self.linears], dim=0)        
-        # Multiply by the criterion matrix to selectively apply results
-        data[self.out_field] = torch.sum(out * data["one_hot_criterion_matrix"], dim=0)
+            tmp = one_hot_criterion_matrix.T
+            tmp = torch.unsqueeze(tmp, 2)
+            print('tmp', tmp.shape)
+            # tmp = tmp.repeat(32, 1, 1).transpose(0,2)
+            data["one_hot_criterion_matrix"]=tmp
+            
+        num_atoms, num_features = data[self.field].shape
 
+        outfeature=32
+        out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
+        print('out shape', out.shape)
+        # Apply linear transformations for each atom type
+        for i in range(self.N):
+            out[i] = self.linears[i](data[self.field])
+        # out = torch.stack([linear(data[self.field]) for linear in self.linears].cuda(), dim=0)
+        
+        # Multiply by the criterion matrix to selectively apply results
+        print(data['one_hot_criterion_matrix'].shape)
+        print('mul', torch.mul(out,data["one_hot_criterion_matrix"]), torch.mul(out,data["one_hot_criterion_matrix"]).shape)
+        data[self.out_field] = torch.sum(torch.mul(out,data["one_hot_criterion_matrix"]), dim=0).cuda()
+        # data[self.out_field] = torch.sum(out,data["one_hot_criterion_matrix"]), dim=0).cuda()
+        print(data[self.out_field], data[self.out_field].shape)
         return data
 
 
