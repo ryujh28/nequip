@@ -173,7 +173,7 @@ class AtomwiseLinear_Nlinears(torch.nn.Module):
         out_field: Optional[str] = None,
         irreps_in=None,
         irreps_out=None,
-        num_atom_types: int = 0,  # Initialize with the number of atom types
+        num_atom_types: int = 3,  # Initialize with the number of atom types
     ):
         super().__init__()
         self.N = num_atom_types  # Initialize self.N with the number of atom types
@@ -198,8 +198,60 @@ class AtomwiseLinear_Nlinears(torch.nn.Module):
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
         # Apply linear transformations for each atom type
         # Combine the results in a single tensor
-        out = torch.stack([linear(data[self.field]) for linear in self.linears], dim=0)
-
+         if not "criterion_matrix" in data.keys():
+            ################################################################
+            ################################################################
+            ## atomic envrionment descision tree로 설정
+            edge_index_TCSM = data["edge_index"]
+            atom_types_TCSM= data["atom_types"]
+        
+            count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
+                                                                      # for 5nm, the 10 would be good
+            criterion_count = count_TCSM>10 
+            ## ratio 구분
+            mixture = dict() # 0: pure N, 1: pure Si, 2: mixture
+            for atom in range(len(atom_types_TCSM)):
+                mixture[atom] = set()
+            pairs = torch.transpose(edge_index_TCSM, 0, 1)
+            pairs = pairs.detach().cpu().numpy()
+            for pair in pairs:
+                if atom_types_TCSM[pair[0]] != atom_types_TCSM[pair[1]]:
+                    mixture[pair[0]].add(0)
+                    mixture[pair[1]].add(0)
+                else:
+                    mixture[pair[0]].add(atom_types_TCSM[pair[0]].item()+1)
+                    mixture[pair[1]].add(atom_types_TCSM[pair[1]].item()+1)
+            criterion_mix = torch.zeros_like(criterion_count, dtype=int)
+            #print(criterion_count.shape)
+            #print(criterion_mix.shape)
+            #print(mixture)
+            for atom in range(len(atom_types_TCSM)):
+                if len(mixture[atom])==0:
+                    criterion_mix[atom] = 0
+                else:    
+                    criterion_mix[atom] += min(mixture[atom])
+            #print("###"*10)
+            #print("criterion_count")  
+            #print(criterion_count)
+            #print("###"*10)
+            #print("criterion_mix")  
+            #print(criterion_mix)
+            #print(criterion_mix.shape)
+            criterion= criterion_count *0 + criterion_mix
+    
+            
+            #####################################################################
+            ############ num_feature should be carefully selected. ##############
+            #####################################################################
+    
+            
+            one_hot_criterion_matrix = torch.zeros((len(atom_types_TCSM), self.N)).cuda()
+            for ii in range(len(criterion)):
+                one_hot_criterion_matrix[ii, criterion[ii]] = 1
+                
+            data["one_hot_criterion_matrix"]=one_hot_criterion_matrix
+        
+        out = torch.stack([linear(data[self.field]) for linear in self.linears], dim=0)        
         # Multiply by the criterion matrix to selectively apply results
         data[self.out_field] = torch.sum(out * data["one_hot_criterion_matrix"], dim=0)
 
