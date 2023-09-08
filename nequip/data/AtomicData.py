@@ -270,34 +270,29 @@ class AtomicData(Data):
 
         edge_index_TCSM = self.edge_index
         atom_types_TCSM = (self.atomic_numbers/7 - 1)[:,0]
-        print("atomic_numbers")
-        print(atom_types_TCSM)
         
     
         count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
                                                                     # for 5nm, the 10 would be good
         criterion_count = count_TCSM>10 
         ## ratio 구분
-        mixture = torch.ones((len(atom_types_TCSM)), dtype=torch.int).cuda()
+        mixture = torch.ones((len(atom_types_TCSM)), dtype=torch.int, device='cpu')
         
         
         pairs = torch.transpose(edge_index_TCSM, 0, 1)
-        print("atom_types", atom_types_TCSM, atom_types_TCSM.shape)
-        print("pairs", pairs, pairs.shape)
         # Create tensors for different conditions
 
         condition_equal = (atom_types_TCSM[pairs[:, 0]] == atom_types_TCSM[pairs[:, 1]])
-        print("condition_equal", condition_equal, condition_equal.shape)
         condition_not_equal = ~condition_equal
 
         # Update mixture tensor based on conditions
-        print("pairs[condition_not_equal]", pairs[condition_not_equal], pairs[condition_not_equal].shape)
+        
         mixture = atom_types_TCSM +1
-        print("mixture", mixture, mixture.shape)  
+        
         mixture[pairs[condition_not_equal][:,0]] = 0
-        print("atom_types", atom_types_TCSM, atom_types_TCSM.shape)
-        mixture = mixture.to(torch.int64).cuda()
-        atom_types_TCSM = atom_types_TCSM.to(torch.int64).cuda()
+        
+        mixture = mixture.to(torch.int64)
+        atom_types_TCSM = atom_types_TCSM.to(torch.int64)
         #mixture[pairs[condition_equal]] = atom_types_TCSM[pairs[condition_equal]] + 1
         #mixture[pairs[condition_equal, 1]] = atom_types_TCSM[pairs[condition_equal, 1]] + 1
         # # dict() # 0: pure N, 1: pure Si, 2: mixture
@@ -312,16 +307,16 @@ class AtomicData(Data):
         #     else:
         #         mixture[pair[0]].append(atom_types_TCSM[pair[0]].item()+1)
         #         mixture[pair[1]].append(atom_types_TCSM[pair[1]].item()+1)
-        print("mixture", mixture, mixture.shape)    
+        
         criterion= mixture
         criterion= criterion.to(torch.int64)
-        one_hot_criterion_matrix = torch.zeros((len(atom_types_TCSM), 3)).cuda()
+        one_hot_criterion_matrix = torch.zeros((len(atom_types_TCSM), 3))
 
         for ii in range(len(criterion)):
             one_hot_criterion_matrix[ii, criterion[ii]] = 1
         one_hot_criterion_matrix = one_hot_criterion_matrix.T
         one_hot_criterion_matrix = torch.unsqueeze(one_hot_criterion_matrix, 2)
-        print("one_hot_criterion_matrix", one_hot_criterion_matrix, one_hot_criterion_matrix.shape)
+        
         self.one_hot_criterion_matrix = one_hot_criterion_matrix.to(device='cpu')
     ###################################################################
     ###################################################################
