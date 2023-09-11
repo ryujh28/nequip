@@ -190,10 +190,13 @@ class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
         )
 
         # Create a list of linear layers for each atom type
-        self.linears = [
-            Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field])
-            for _ in range(self.N)
-        ]
+        self.linear1 = Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        self.linear2 = Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        self.linear3 = Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        # self.linears = [
+        #     Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        #     for _ in range(self.N)
+        # ]
 
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
 
@@ -206,10 +209,12 @@ class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
         # if data["now_epochs"] > threshold:
 
         out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
-        for i in range(self.N):
-            out[i] = self.linears[i](data[self.field])
+        
+        out[0] = self.linear1(data[self.field])
+        out[1] = self.linear2(data[self.field])
+        out[2] = self.linear3(data[self.field])
         # out = torch.stack([linear(data[self.field]) for linear in self.linears].cuda(), dim=0)
-        data[self.out_field] = torch.sum(torch.mul(out,torch.unsqueeze(data["one_hot_criterion_matrix"].T, dim=2)), dim=0).to(device=data[self.field].device)
+        data[self.out_field] = torch.sum(torch.mul(out,torch.unsqueeze(data["one_hot_criterion_matrix"].T, dim=2)), dim=0)#.to(device=data[self.field].device)
         return data
         # else:
         out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
