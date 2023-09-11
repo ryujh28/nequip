@@ -191,55 +191,37 @@ class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
 
         # Create a list of linear layers for each atom type
         self.linears = [
-            Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+            Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field])
             for _ in range(self.N)
         ]
 
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
-        # Apply linear transformations for each atom type
-        # Combine the results in a single tensor
 
-    
-            #####################################################################
-            ############ num_feature should be carefully selected. ##############
-            #####################################################################
-    
-            
-            one_hot_criterion_matrix = torch.zeros((len(atom_types_TCSM), self.N)).cuda()
-            for ii in range(len(criterion)):
-                one_hot_criterion_matrix[ii, criterion[ii]] = 1
-            tmp = one_hot_criterion_matrix.T
-            tmp = torch.unsqueeze(tmp, 2)
-            print('tmp', tmp.shape)
-            # tmp = tmp.repeat(32, 1, 1).transpose(0,2)
-            data["one_hot_criterion_matrix"]=tmp
-
-        if not "now_epochs" in data.keys():
-            data["now_epochs"]=0
-        data["now_epochs"] +=1
 
         num_atoms, num_features = data[self.field].shape
 
         outfeature=32
-
-        threshold=25
+ 
+        # threshold=25
         # if data["now_epochs"] > threshold:
 
-        #     out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
-            
-        #     for i in range(self.N):
-        #         out[i] = self.linears[i](data[self.field])
-        #     # out = torch.stack([linear(data[self.field]) for linear in self.linears].cuda(), dim=0)
-            
-        #     data[self.out_field] = torch.sum(torch.mul(out,data["one_hot_criterion_matrix"]), dim=0).cuda()
-        #     return data
+        out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
+        for i in range(self.N):
+            out[i] = self.linears[i](data[self.field])
+        # out = torch.stack([linear(data[self.field]) for linear in self.linears].cuda(), dim=0)
+        data[self.out_field] = torch.sum(torch.mul(out,torch.unsqueeze(data["one_hot_criterion_matrix"].T, dim=2)), dim=0).to(device=data[self.field].device)
+        return data
         # else:
         out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
         
         for i in range(self.N):
             out[i] = self.linears[i](data[self.field])
             
-        data[self.out_field] = torch.mean(out, dim=0)
+        #data[self.out_field] = torch.mean(out, dim=0)
+        print(data.keys())
+        data[self.out_field] = torch.sum(torch.mul(out,data["one_hot_criterion_matrix"]), dim=0).cuda()
+
+        
         return data
 
 
