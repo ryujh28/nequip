@@ -108,5 +108,4 @@ def dataset_from_config(config, prefix: str = "dataset") -> AtomicDataset:
         positional_args={"type_mapper": type_mapper},
         optional_args=config,
     )
-
     return instance
