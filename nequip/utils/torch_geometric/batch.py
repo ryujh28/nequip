@@ -45,9 +45,8 @@ class Batch(Data):
         :obj:`follow_batch`.
         Will exclude any keys given in :obj:`exclude_keys`."""
 
-        keys = list(set(data_list[0].keys) - set(exclude_keys))
+        keys = list(set(data_list[0].keys) - set(exclude_keys) )
         assert "batch" not in keys and "ptr" not in keys
-
         batch = cls()
         for key in data_list[0].__dict__.keys():
             if key[:2] != "__" and key[-2:] != "__":
@@ -55,6 +54,7 @@ class Batch(Data):
 
         batch.__num_graphs__ = len(data_list)
         batch.__data_class__ = data_list[0].__class__
+
         for key in keys + ["batch"]:
             batch[key] = []
         batch["ptr"] = [0]
@@ -134,7 +134,6 @@ class Batch(Data):
         batch.__cumsum__ = cumsum
         batch.__cat_dims__ = cat_dims
         batch.__num_nodes_list__ = num_nodes_list
-
         ref_data = data_list[0]
         for key in batch.keys:
             items = batch[key]

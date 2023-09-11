@@ -59,12 +59,12 @@ def instantiate_from_cls_name(
 
 
 def instantiate(
-    builder,
-    prefix: Optional[Union[str, List[str]]] = [],
-    positional_args: dict = {},
-    optional_args: dict = None,
-    all_args: dict = None,
-    remove_kwargs: bool = True,
+    builder,    # 인스턴스를 생성할 클래스
+    prefix: Optional[Union[str, List[str]]] = [], # 매개변수의 접두사
+    positional_args: dict = {}, # 위치에 대한 딕셔너리
+    optional_args: dict = None, # 두번쨰 우선순뒤인 딕셔너리
+    all_args: dict = None, # 세번쨰 우선순위 딕셔너리, 대부분 여기서 찾아짐
+    remove_kwargs: bool = True, # keyword지워버림
     return_args_only: bool = False,
     parent_builders: list = [],
 ):
@@ -86,6 +86,14 @@ def instantiate(
         return_args_only (bool): if True, do not instantiate, only return the arguments
     """
 
+    # 주어진 인자와 클래스 생성자의 파라미터를 비교해서, 인자 딕셔너리에서 클래스 생성자에 필요한 인자를 선택함.
+    # 선택 우선순위는 위치 인자가 가장 높음.  
+    # 
+
+
+    # 먼저 prefix_list초기화, empty list 임
+    # 그리고 builder 객체가 클래스라면, 클래스 이름을 prefix_list에 추가함
+    # 나중에 검색해서 prefix_list에 있는 문자열을 사용해서 파라미터와 키 매칭 가능
     prefix_list = [builder.__name__] if inspect.isclass(builder) else []
     if isinstance(prefix, str):
         prefix_list += [prefix]
@@ -95,9 +103,13 @@ def instantiate(
         raise ValueError(f"prefix has the wrong type {type(prefix)}")
 
     # detect the input parameters needed from params
+    # 파라미터를 검사할 준비를 함. builder클래스로부터 파라미터를 추출해서 config 에 저장함
     config = Config.from_class(builder, remove_kwargs=remove_kwargs)
 
     # be strict about _kwargs keys:
+    # 키를 엄격하게 처리함
+    # allow_list()를 써서, config객체에서 허용된 파라미터 목록을 가져옴
+    # 허용되지 않는 키들은 오류를 냄
     allow = config.allow_list()
     for key in allow:
         bname = key[:-7]
@@ -105,14 +117,24 @@ def instantiate(
             raise KeyError(
                 f"Instantiating {builder.__name__}: found kwargs argument `{key}`, but no parameter `{bname}` for the corresponding builder. (Did you rename `{bname}` but forget to change `{bname}_kwargs`?) Either add a parameter for `{bname}` if you are trying to allow construction of a submodule, or, if `{bname}_kwargs` is just supposed to be a dictionary, rename it without `_kwargs`."
             )
+    # 처리가 끝나면 메모리 아껴줌
     del allow
-
+    # key_mapping이라는 빈 딕셔너리 만듬
     key_mapping = {}
+
+    # 우선순위가 가장 낮은, all_args 딕셔너리에서 파라미터를 검색함.
+
     if all_args is not None:
         # fetch paratemeters that directly match the name
+        # config에서 all_args와 일치하는 파라미터 키들을 뽑아내서 _keys에 저장
         _keys = config.update(all_args)
+        # 이거 왜있는거지?
+        # key랑 value가 같은 dict를 만들어서 key_mappin["all"]의 value로 받아줌
         key_mapping["all"] = {k: k for k in _keys}
         # fetch paratemeters that match prefix + "_" + name
+
+
+        # prefix_list의 각 접두사를 사용해서 키를 매핑함 
         for idx, prefix_str in enumerate(prefix_list):
             _keys = config.update_w_prefix(
                 all_args,
@@ -120,6 +142,8 @@ def instantiate(
             )
             key_mapping["all"].update(_keys)
 
+
+    # optinal arg에 대해서도 같 일을 해줌
     if optional_args is not None:
         # fetch paratemeters that directly match the name
         _keys = config.update(optional_args)
@@ -132,6 +156,8 @@ def instantiate(
             )
             key_mapping["optional"].update(_keys)
 
+
+    # all에 대해서도 해줌
     # for logging only, remove the overlapped keys
     if "all" in key_mapping and "optional" in key_mapping:
         key_mapping["all"] = {
@@ -228,7 +254,13 @@ def instantiate(
     logging.debug(f"...   optional_args = {final_optional_args},")
     logging.debug(f"...   positional_args = {positional_args})")
 
+
+    # 여기서 문제가 자꾸 남
+    #
     try:
+        # builder 클래스의 생성자를 호출해, 클래스의 인스턴스를 만듬
+        # 여기서 builder 는 cls: data.dataset.ASEDataset
+        # 저기서 문제가 생김
         instance = builder(**positional_args, **final_optional_args)
     except Exception as e:
         raise RuntimeError(

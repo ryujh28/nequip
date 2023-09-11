@@ -316,10 +316,10 @@ class AtomicData(Data):
         
         criterion= mixture
         criterion= criterion.to(torch.int64)
-        one_hot_criterion_matrix = torch.ones((len(atom_types_TCSM), 3)) * 0.25
+        one_hot_criterion_matrix = torch.ones((len(atom_types_TCSM), 3)) * 0
 
         for ii in range(len(criterion)):
-            one_hot_criterion_matrix[ii, criterion[ii]] += 0.25
+            one_hot_criterion_matrix[ii, criterion[ii]] += 1
         one_hot_criterion_matrix = one_hot_criterion_matrix
         #one_hot_criterion_matrix = torch.unsqueeze(one_hot_criterion_matrix, 2)
         

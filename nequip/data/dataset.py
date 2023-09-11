@@ -163,6 +163,7 @@ class AtomicInMemoryDataset(AtomicDataset):
         # Initialize the InMemoryDataset, which runs download and process
         # See https://pytorch-geometric.readthedocs.io/en/latest/notes/create_dataset.html#creating-in-memory-datasets
         # Then pre-process the data if disk files are not found
+        
         super().__init__(root=root, type_mapper=type_mapper)
         if self.data is None:
             self.data, self.fixed_fields, include_frames = torch.load(
@@ -858,13 +859,13 @@ class ASEDataset(AtomicInMemoryDataset):
     def __init__(
         self,
         root: str,
-        ase_args: dict = {},
-        file_name: Optional[str] = None,
+        ase_args: dict = {}, # ase.io에 전달할 인자
+        file_name: Optional[str] = None, # 데이터 파일의 이름
         url: Optional[str] = None,
-        force_fixed_keys: List[str] = [],
-        extra_fixed_fields: Dict[str, Any] = {},
-        include_frames: Optional[List[int]] = None,
-        type_mapper: TypeMapper = None,
+        force_fixed_keys: List[str] = [], # 고정 키
+        extra_fixed_fields: Dict[str, Any] = {}, # 추가적인 고정 키
+        include_frames: Optional[List[int]] = None, # 포함할 프레임의 인덱스 목록
+        type_mapper: TypeMapper = None, # 
         key_mapping: Optional[dict] = None,
         include_keys: Optional[List[str]] = None,
     ):
@@ -877,6 +878,9 @@ class ASEDataset(AtomicInMemoryDataset):
         self.include_keys = include_keys
         self.key_mapping = key_mapping
 
+        # 여기서 initialize를 해줌
+        # 여기까지는 코드가 무사히 홈
+        # 그러니까 super해서 받는 도중에 문제가 생기는듯...
         super().__init__(
             file_name=file_name,
             url=url,
@@ -886,7 +890,7 @@ class ASEDataset(AtomicInMemoryDataset):
             include_frames=include_frames,
             type_mapper=type_mapper,
         )
-
+        # 여기는 코드가 못옴
     @classmethod
     def from_atoms_list(cls, atoms: Sequence[ase.Atoms], **kwargs):
         """Make an ``ASEDataset`` from a list of ``ase.Atoms`` objects.
@@ -961,6 +965,8 @@ class ASEDataset(AtomicInMemoryDataset):
                 ctx = mp.get_context("forkserver")
                 with ctx.Pool(processes=n_proc) as p:
                     # map it over the `rank` argument
+
+                    # reader에는 config에 있는 모든 ket, value들이 다 들어가 있음
                     datas = p.map(reader, list(range(n_proc)))
                 # clean up the pool before loading the data
                 datas = [torch.load(d) for d in datas]
@@ -972,4 +978,5 @@ class ASEDataset(AtomicInMemoryDataset):
                 # datas here is already in order, stride 1 start 0
                 # no need to un-interleave
         # return list of AtomicData:
+
         return ([e[1] for e in datas],)
