@@ -32,6 +32,7 @@ _DEFAULT_LONG_FIELDS: Set[str] = {
     AtomicDataDict.ATOM_TYPE_KEY,
     AtomicDataDict.BATCH_KEY,
     AtomicDataDict.ATOMIC_ENVIRONMENT_KEY,
+    AtomicDataDict.NOW_EPOCH_KEY,
 }
 _DEFAULT_NODE_FIELDS: Set[str] = {
     AtomicDataDict.POSITIONS_KEY,
@@ -267,10 +268,15 @@ class AtomicData(Data):
 
     ###################################################################
     ###################################################################
-
         edge_index_TCSM = self.edge_index
-        atom_types_TCSM = (self.atomic_numbers/7 - 1)[:,0]
-        
+        if "atom_types" in self.keys:
+            atom_types_TCSM = (self.atom_types)[:,0]
+            #print("atom_types", atom_types_TCSM, len(atom_types_TCSM))
+        elif "atomic_numbers" in self.keys:
+            atom_types_TCSM = (self.atomic_numbers/7 - 1)[:,0]
+            #print("atomic_numbers", atom_types_TCSM, len(atom_types_TCSM))
+        else:
+            raise KeyError("both atom_types and atomic_numbers are not exist in AtomicData")
     
         count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
                                                                     # for 5nm, the 10 would be good
@@ -310,14 +316,15 @@ class AtomicData(Data):
         
         criterion= mixture
         criterion= criterion.to(torch.int64)
-        one_hot_criterion_matrix = torch.zeros((len(atom_types_TCSM), 3))
+        one_hot_criterion_matrix = torch.ones((len(atom_types_TCSM), 3)) * 0.25
 
         for ii in range(len(criterion)):
-            one_hot_criterion_matrix[ii, criterion[ii]] = 1
-        one_hot_criterion_matrix = one_hot_criterion_matrix.T
-        one_hot_criterion_matrix = torch.unsqueeze(one_hot_criterion_matrix, 2)
+            one_hot_criterion_matrix[ii, criterion[ii]] += 0.25
+        one_hot_criterion_matrix = one_hot_criterion_matrix
+        #one_hot_criterion_matrix = torch.unsqueeze(one_hot_criterion_matrix, 2)
         
         self.one_hot_criterion_matrix = one_hot_criterion_matrix.to(device='cpu')
+        self.now_epoch=0
     ###################################################################
     ###################################################################
     ###################################################################
@@ -387,7 +394,6 @@ class AtomicData(Data):
             kwargs[AtomicDataDict.PBC_KEY] = torch.as_tensor(
                 pbc, dtype=torch.bool
             ).view(3)
-        print(kwargs)
 
 
         
