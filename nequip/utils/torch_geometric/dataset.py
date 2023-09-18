@@ -86,7 +86,7 @@ class Dataset(torch.utils.data.Dataset):
 
         if "download" in self.__class__.__dict__.keys():
             self._download()
-
+        # process를 진행함
         if "process" in self.__class__.__dict__.keys():
             self._process()
 

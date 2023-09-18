@@ -27,7 +27,7 @@ ATOMIC_NUMBERS_KEY: Final[str] = "atomic_numbers"
 ATOM_TYPE_KEY: Final[str] = "atom_types"
 
 ATOMIC_ENVIRONMENT_KEY: Final[str]= "one_hot_criterion_matrix"
-
+NOW_EPOCH_KEY: Final[str]="now_epoch"
 BASIC_STRUCTURE_KEYS: Final[List[str]] = [
     POSITIONS_KEY,
     EDGE_INDEX_KEY,
@@ -37,6 +37,7 @@ BASIC_STRUCTURE_KEYS: Final[List[str]] = [
     ATOM_TYPE_KEY,
     ATOMIC_NUMBERS_KEY,
     ATOMIC_ENVIRONMENT_KEY,
+    NOW_EPOCH_KEY,
 ]
 
 # A [n_edge, 3] tensor of displacement vectors associated to edges

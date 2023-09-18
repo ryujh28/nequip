@@ -190,199 +190,83 @@ class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
         )
 
         # Create a list of linear layers for each atom type
-        self.linears = [
-            Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
-            for _ in range(self.N)
-        ]
+        self.linear1 = Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        self.linear2 = Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        self.linear3 = Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        # self.linears = [
+        #     Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        #     for _ in range(self.N)
+        # ]
 
     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
-        # Apply linear transformations for each atom type
-        # Combine the results in a single tensor
-        if not "criterion_matrix" in data.keys():
-            ################################################################
-            ################################################################
-            ## atomic envrionment descision tree로 설정
-            edge_index_TCSM = data["edge_index"]
-            atom_types_TCSM= data["atom_types"]
-        
-            count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
-                                                                      # for 5nm, the 10 would be good
-            criterion_count = count_TCSM>10 
-            ## ratio 구분
-            mixture = dict() # 0: pure N, 1: pure Si, 2: mixture
-            for atom in range(len(atom_types_TCSM)):
-                mixture[atom] = set()
-            pairs = torch.transpose(edge_index_TCSM, 0, 1)
-            pairs = pairs.detach().cpu().numpy()
-            for pair in pairs:
-                if atom_types_TCSM[pair[0]] != atom_types_TCSM[pair[1]]:
-                    mixture[pair[0]].add(0)
-                    mixture[pair[1]].add(0)
-                else:
-                    mixture[pair[0]].add(atom_types_TCSM[pair[0]].item()+1)
-                    mixture[pair[1]].add(atom_types_TCSM[pair[1]].item()+1)
-            criterion_mix = torch.zeros_like(criterion_count, dtype=int)
-            #print(criterion_count.shape)
-            #print(criterion_mix.shape)
-            #print(mixture)
-            for atom in range(len(atom_types_TCSM)):
-                if len(mixture[atom])==0:
-                    criterion_mix[atom] = 0
-                else:    
-                    criterion_mix[atom] += min(mixture[atom])
-            #print("###"*10)
-            #print("criterion_count")  
-            #print(criterion_count)
-            #print("###"*10)
-            #print("criterion_mix")  
-            #print(criterion_mix)
-            #print(criterion_mix.shape)
-            criterion= criterion_count *0 + criterion_mix
-    
-            
-            #####################################################################
-            ############ num_feature should be carefully selected. ##############
-            #####################################################################
-    
-            
-            one_hot_criterion_matrix = torch.zeros((len(atom_types_TCSM), self.N)).cuda()
-            for ii in range(len(criterion)):
-                one_hot_criterion_matrix[ii, criterion[ii]] = 1
-            tmp = one_hot_criterion_matrix.T
-            tmp = torch.unsqueeze(tmp, 2)
-            print('tmp', tmp.shape)
-            # tmp = tmp.repeat(32, 1, 1).transpose(0,2)
-            data["one_hot_criterion_matrix"]=tmp
 
-        if not "now_epochs" in data.keys():
-            data["now_epochs"]=0
-        data["now_epochs"] +=1
 
         num_atoms, num_features = data[self.field].shape
 
         outfeature=32
+ 
+        # threshold=25
+        # if data["now_epochs"] > threshold:
 
-        threshold=25
-        if data["now_epochs"] > threshold:
-
-            out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
-            
-            for i in range(self.N):
-                out[i] = self.linears[i](data[self.field])
-            # out = torch.stack([linear(data[self.field]) for linear in self.linears].cuda(), dim=0)
-            
-            data[self.out_field] = torch.sum(torch.mul(out,data["one_hot_criterion_matrix"]), dim=0).cuda()
-            return data
-        else:
-            out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
-            
-            for i in range(self.N):
-                out[i] = self.linears[i](data[self.field])
-                
-            data[self.out_field] = torch.avg(out, dim=0)
-
-
-
-# class AtomwiseLinear_Nlinears(GraphModuleMixin, torch.nn.Module):
-#     def __init__(
-#         self,
-#         field: str = AtomicDataDict.NODE_FEATURES_KEY,
-#         out_field: Optional[str] = None,
-#         irreps_in=None,
-#         irreps_out=None,
-#     ):
-#         super().__init__()
-#         self.N = 6
-#         self.field = field
-#         out_field = out_field if out_field is not None else field
-#         self.out_field = out_field
-#         if irreps_out is None:
-#             irreps_out = irreps_in[field]
-
-#         self._init_irreps(
-#             irreps_in=irreps_in,
-#             required_irreps_in=[field],
-#             irreps_out={out_field: irreps_out},
-#         )
-
-#         ####I want to make N linear layers, that will be used for N different atom types.
-#         self.linears = [Linear(irreps_in=self.irreps_in[field], irreps_out = self.irreps_out[out_field]) for i in range(self.N)]
-#         self.linears = torch.as_tensor(self.linears).cuda()
-#     def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
-#         ####In the forward, I now want to output data with N different linear layers to go to for N different atom types.
-#         #so, insead of this: data[self.out_field] = self.linear(data[self.field])
-#         #I want to do this:
-
-#         if not "criterion_matrix" in data.keys():
-#             ################################################################
-#             ################################################################
-#             ## atomic envrionment descision tree로 설정
-#             edge_index_TCSM = data["edge_index"]
-#             atom_types_TCSM= data["atom_types"]
+        out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
         
-#             count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
-#                                                                       # for 5nm, the 10 would be good
-#             criterion_count = count_TCSM>10 
-#             ## ratio 구분
-#             mixture = dict() # 0: pure N, 1: pure Si, 2: mixture
-#             for atom in range(len(atom_types_TCSM)):
-#                 mixture[atom] = set()
-#             pairs = torch.transpose(edge_index_TCSM, 0, 1)
-#             pairs = pairs.detach().cpu().numpy()
-#             for pair in pairs:
-#                 if atom_types_TCSM[pair[0]] != atom_types_TCSM[pair[1]]:
-#                     mixture[pair[0]].add(0)
-#                     mixture[pair[1]].add(0)
-#                 else:
-#                     mixture[pair[0]].add(atom_types_TCSM[pair[0]].item()+1)
-#                     mixture[pair[1]].add(atom_types_TCSM[pair[1]].item()+1)
-#             criterion_mix = torch.zeros_like(criterion_count, dtype=int)
-#             #print(criterion_count.shape)
-#             #print(criterion_mix.shape)
-#             #print(mixture)
-#             for atom in range(len(atom_types_TCSM)):
-#                 if len(mixture[atom])==0:
-#                     criterion_mix[atom] = 0
-#                 else:    
-#                     criterion_mix[atom] += min(mixture[atom])
-#             #print("###"*10)
-#             #print("criterion_count")  
-#             #print(criterion_count)
-#             #print("###"*10)
-#             #print("criterion_mix")  
-#             #print(criterion_mix)
-#             #print(criterion_mix.shape)
-#             criterion= criterion_count *3 + criterion_mix
-    
-            
-#             #####################################################################
-#             ############ num_feature should be carefully selected. ##############
-#             #####################################################################
-    
-            
-#             one_hot_criterion_matrix = torch.zeros((len(atom_types_TCSM), 6)).cuda()
-#             for ii in range(len(criterion)):
-#                 one_hot_criterion_matrix[ii, criterion[ii]] = 1
-                
-#             data["one_hot_criterion_matrix"]=one_hot_criterion_matrix
+        out[0] = self.linear1(data[self.field])
+        out[1] = self.linear2(data[self.field])
+        out[2] = self.linear3(data[self.field])
+        # out = torch.stack([linear(data[self.field]) for linear in self.linears].cuda(), dim=0)
+        data[self.out_field] = torch.sum(torch.mul(out,torch.unsqueeze(data["one_hot_criterion_matrix"].T, dim=2)), dim=0)#.to(device=data[self.field].device)
+        return data
+
+class AtomwiseLinear_Nlinears_pretrain(GraphModuleMixin, torch.nn.Module):
+    def __init__(
+        self,
+        field: str = AtomicDataDict.NODE_FEATURES_KEY,
+        out_field: Optional[str] = None,
+        irreps_in=None,
+        irreps_out=None,
+        # num_atom_types: int = 3,  # Initialize with the number of atom types
+    ):
+        super().__init__()
+        self.N = 3  # Initialize self.N with the number of atom types
+        self.field = field
+        out_field = out_field if out_field is not None else field
+        self.out_field = out_field
+        if irreps_out is None:
+            irreps_out = irreps_in[field]
+
+        self._init_irreps(
+            irreps_in=irreps_in,
+            required_irreps_in=[field],
+            irreps_out={out_field: irreps_out},
+        )
+
+        # Create a list of linear layers for each atom type
+        self.linear1 = Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        self.linear2 = Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        self.linear3 = Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        # self.linears = [
+        #     Linear(irreps_in=self.irreps_in[field], irreps_out=self.irreps_out[out_field]).cuda()
+        #     for _ in range(self.N)
+        # ]
+
+    def forward(self, data: AtomicDataDict.Type) -> AtomicDataDict.Type:
 
 
+        num_atoms, num_features = data[self.field].shape
+
+        outfeature=32
+ 
+        # threshold=25
+        # if data["now_epochs"] > threshold:
+
+        out = torch.zeros((self.N, num_atoms, outfeature), device=data[self.field].device)
         
-#         data[self.out_field] = torch.mul([self.linears[i](data[self.field]) for i in range(self.N)], data['one_hot_criterion_matrix'])
-#         return data
-
-
-
-#         ################################################################
-#         ################################################################
-#         ## atomic envrionment descision tree로 설정
-#         #edge_index_TCSM = data["edge_index"]
-#         #atom_types_TCSM= data["atom_types"]
-    
-#         #count_TCSM = torch.bincount(edge_index_TCSM.reshape(-1)) # check how many edges the atom has.
-#         #                                                          # for 5nm, the 10 would be good
-#         #criteron_count = count_TCSM>10
-#         ##print(criterion_count)
+        out[0] = self.linear1(data[self.field])
+        out[1] = self.linear2(data[self.field])
+        out[2] = self.linear3(data[self.field])
+        # out = torch.stack([linear(data[self.field]) for linear in self.linears].cuda(), dim=0)
+        data[self.out_field] = torch.mean((out), dim=0)#.to(device=data[self.field].device)
+        return data
 
 class AtomwiseReduce(GraphModuleMixin, torch.nn.Module):
     constant: float
