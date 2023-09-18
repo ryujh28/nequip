@@ -4,6 +4,7 @@ from typing import Optional, List
 import torch
 import torch.nn.functional
 from torch_runstats.scatter import scatter
+import copy
 
 from e3nn.o3 import Linear
 
@@ -265,7 +266,7 @@ class AtomwiseLinear_Nlinears_pretrain(GraphModuleMixin, torch.nn.Module):
         out[1] = self.linear2(data[self.field])
         out[2] = self.linear3(data[self.field])
         # out = torch.stack([linear(data[self.field]) for linear in self.linears].cuda(), dim=0)
-        data[self.out_field] = torch.mean((out), dim=0)#.to(device=data[self.field].device)
+        data[self.out_field] = out[0]#.to(device=data[self.field].device)
         return data
 
 class AtomwiseReduce(GraphModuleMixin, torch.nn.Module):

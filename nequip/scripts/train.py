@@ -237,7 +237,9 @@ def restart(config):
     # compare dictionary to config and update stop condition related arguments
     for k in config.keys():
         if config[k] != dictionary.get(k, ""):
-            if k == "max_epochs":
+            #dictionary[k] = config[k]
+            #continue
+            if k == "max_epochs" or k.startswith('wandb') or k.startswith('model') or k.startswith('learning') or k.startswith('lr') or k.startswith('loss'):
                 dictionary[k] = config[k]
                 logging.info(f'Update "{k}" to {dictionary[k]}')
             elif k.startswith("early_stop"):
